@@ -14,8 +14,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
 <body>
+<div class="page-loader" role="status" aria-label="Carregando"><i></i><span>Carregando...</span></div>
 {% if current_user.is_authenticated %}
-<aside class="sidebar">
+<aside class="sidebar" id="menu-lateral">
   <a class="brand" href="{{ url_for('main.index') }}">
     <img src="{{ url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="Sacolícia Carioca">
     <span>Sacolícia<small>Carioca</small></span>
@@ -46,7 +47,7 @@
 </aside>
 {% endif %}
 <main class="{% if current_user.is_authenticated %}workspace{% endif %}">
-  {% if current_user.is_authenticated %}<header class="topbar"><button class="menu-button" aria-label="Abrir menu">☰</button><div><span class="mobile-name">Sacolícia Carioca</span></div><div class="top-user"><span>{{ current_user.name }}</span><i>{{ current_user.name[:2]|upper }}</i></div></header>{% endif %}
+  {% if current_user.is_authenticated %}<header class="topbar"><button class="menu-button" type="button" aria-label="Abrir menu" aria-controls="menu-lateral">☰</button><div><span class="mobile-name">Sacolícia Carioca</span></div><div class="top-user"><span>{{ current_user.name }}</span><i>{{ current_user.name[:2]|upper }}</i></div></header>{% endif %}
   {% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="alerts">{% for category,message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
   {% block content %}{% endblock %}
 </main>
