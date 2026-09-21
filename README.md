@@ -1,5 +1,18 @@
 # Sacolícia Carioca
 
+## Imagens dos produtos
+
+Configure `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` e
+`CLOUDINARY_API_SECRET` no ambiente de produção. O painel administrativo permite
+cadastrar, editar e ativar/desativar produtos. Imagens aceitas: JPG, PNG e WEBP,
+com limite de 5 MB.
+
+## Gestão comercial
+
+O administrador pode cadastrar e editar clientes, vincular vários
+estabelecimentos com endereço completo e criar os acessos dos clientes. Também
+é possível ativar e desativar cada cadastro sem apagar o histórico.
+
 PWA de pedidos B2B com áreas administrativas e de cliente separadas.
 
 ## Rodar localmente

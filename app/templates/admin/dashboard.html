@@ -14,7 +14,7 @@
       <div class="panel-title"><div><h2>Pedidos recentes</h2><p>Últimas solicitações recebidas</p></div><button>Ver todos</button></div>
       {% if orders %}<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Estabelecimento</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in orders %}<tr><td><b>{{ order.code }}</b></td><td>{{ order.client.trade_name }}</td><td>{{ order.establishment.name }}</td><td>R$ {{ '%.2f'|format(order.total)|replace('.', ',') }}</td><td><span class="badge pending">Aguardando aprovação</span></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><b>Nenhum pedido recebido</b><span>Os novos pedidos aparecerão aqui para aprovação.</span></div>{% endif %}
     </article>
-    <article class="panel quick"><h2>Ações rápidas</h2><a href="#clientes">Cadastrar cliente <b>→</b></a><a href="{{ url_for('admin.product_new') }}">Cadastrar produto <b>→</b></a><a href="#estabelecimentos">Novo estabelecimento <b>→</b></a><a href="#usuarios">Criar acesso do cliente <b>→</b></a></article>
+    <article class="panel quick"><h2>Ações rápidas</h2><a href="{{ url_for('admin.client_new') }}">Cadastrar cliente <b>→</b></a><a href="{{ url_for('admin.product_new') }}">Cadastrar produto <b>→</b></a><a href="{{ url_for('admin.establishment_new') }}">Novo estabelecimento <b>→</b></a>{% if current_user.role in ('admin', 'gestor') %}<a href="{{ url_for('admin.user_new') }}">Criar acesso do cliente <b>→</b></a>{% endif %}</article>
   </div>
 </section>
 {% endblock %}

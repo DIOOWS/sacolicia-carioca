@@ -30,10 +30,10 @@
       <a class="active" href="{{ url_for('admin.dashboard') }}">⌂ Visão geral</a>
       <a href="{{ url_for('admin.dashboard') }}#pedidos">▤ Pedidos</a>
       <a href="{{ url_for('admin.products') }}">◈ Produtos</a>
-      <a href="#clientes">♙ Clientes</a>
-      <a href="#estabelecimentos">▥ Estabelecimentos</a>
+      <a href="{{ url_for('admin.clients') }}">♙ Clientes</a>
+      <a href="{{ url_for('admin.establishments') }}">▥ Estabelecimentos</a>
       <a href="#relatorios">↧ Relatórios</a>
-      <a href="#usuarios">⚙ Usuários</a>
+      {% if current_user.role in ('admin', 'gestor') %}<a href="{{ url_for('admin.users') }}">⚙ Usuários</a>{% endif %}
     {% endif %}
   </nav>
   <div class="side-user">

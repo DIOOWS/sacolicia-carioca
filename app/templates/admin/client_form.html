@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block title %}{{ 'Editar' if client else 'Novo' }} cliente | Sacolícia{% endblock %}{% block content %}
+<section class="page form-page"><div class="page-head"><div><span class="eyebrow">CLIENTES</span><h1>{{ 'Editar cliente' if client else 'Novo cliente' }}</h1><p>Cadastre os dados principais da empresa. Os endereços ficam nos estabelecimentos.</p></div></div>
+<form class="panel product-form" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid">
+<label class="span-2">Razão social<input name="corporate_name" maxlength="160" required value="{{ request.form.get('corporate_name', client.corporate_name if client else '') }}"></label>
+<label>Nome fantasia<input name="trade_name" maxlength="120" required value="{{ request.form.get('trade_name', client.trade_name if client else '') }}"></label>
+<label>CPF ou CNPJ<input name="document" maxlength="20" required value="{{ request.form.get('document', client.document if client else '') }}"></label>
+<label>E-mail<input type="email" name="email" maxlength="120" value="{{ request.form.get('email', client.email if client and client.email else '') }}"></label>
+<label>Telefone/WhatsApp<input name="phone" maxlength="30" value="{{ request.form.get('phone', client.phone if client and client.phone else '') }}"></label>
+<label class="switch-row"><input type="checkbox" name="active" {% if request.method == 'POST' and request.form.get('active') or request.method == 'GET' and (not client or client.active) %}checked{% endif %}> Cliente ativo</label>
+</div><div class="form-actions"><a class="secondary button-link" href="{{ url_for('admin.clients') }}">Cancelar</a><button class="primary">Salvar cliente</button></div></form></section>{% endblock %}

@@ -1,4 +1,4 @@
-const CACHE = 'sacolicia-v3';
+const CACHE = 'sacolicia-v4';
 const ASSETS = [
   '/login',
   '/static/css/app.css',

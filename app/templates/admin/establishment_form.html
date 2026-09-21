@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block title %}{{ 'Editar' if establishment else 'Novo' }} estabelecimento | Sacolícia{% endblock %}{% block content %}
+<section class="page form-page"><div class="page-head"><div><span class="eyebrow">PONTO DE ENTREGA</span><h1>{{ 'Editar estabelecimento' if establishment else 'Novo estabelecimento' }}</h1><p>Cadastre o endereço completo onde o pedido será entregue.</p></div></div>
+<form class="panel product-form" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="form-grid">
+<label class="span-2">Cliente<select name="client_id" required><option value="">Selecione</option>{% for client in clients %}{% set chosen=request.form.get('client_id')|int if request.method == 'POST' else (establishment.client_id if establishment else selected_client_id) %}<option value="{{ client.id }}" {% if chosen == client.id %}selected{% endif %}>{{ client.trade_name }} — {{ client.document }}</option>{% endfor %}</select></label>
+<label>Nome da unidade<input name="name" maxlength="120" required placeholder="Ex.: Mercado Centro" value="{{ request.form.get('name', establishment.name if establishment else '') }}"></label>
+<label>CNPJ da unidade<input name="document" maxlength="20" value="{{ request.form.get('document', establishment.document if establishment and establishment.document else '') }}"></label>
+<label>Telefone<input name="phone" maxlength="30" value="{{ request.form.get('phone', establishment.phone if establishment and establishment.phone else '') }}"></label>
+<label>CEP<input name="zip_code" maxlength="10" required value="{{ request.form.get('zip_code', establishment.zip_code if establishment else '') }}"></label>
+<label class="span-2">Logradouro<input name="street" maxlength="160" required value="{{ request.form.get('street', establishment.street if establishment else '') }}"></label>
+<label>Número<input name="number" maxlength="20" required value="{{ request.form.get('number', establishment.number if establishment else '') }}"></label>
+<label>Complemento<input name="complement" maxlength="80" value="{{ request.form.get('complement', establishment.complement if establishment and establishment.complement else '') }}"></label>
+<label>Bairro<input name="neighborhood" maxlength="80" required value="{{ request.form.get('neighborhood', establishment.neighborhood if establishment else '') }}"></label>
+<label>Cidade<input name="city" maxlength="80" required value="{{ request.form.get('city', establishment.city if establishment else '') }}"></label>
+<label>UF<input name="state" maxlength="2" required value="{{ request.form.get('state', establishment.state if establishment else 'RJ') }}"></label>
+<label class="switch-row"><input type="checkbox" name="active" {% if request.method == 'POST' and request.form.get('active') or request.method == 'GET' and (not establishment or establishment.active) %}checked{% endif %}> Estabelecimento ativo</label>
+</div><div class="form-actions"><a class="secondary button-link" href="{{ url_for('admin.establishments') }}">Cancelar</a><button class="primary">Salvar estabelecimento</button></div></form></section>{% endblock %}
