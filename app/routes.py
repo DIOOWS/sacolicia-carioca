@@ -1,11 +1,15 @@
+from datetime import datetime, time, timezone
 from decimal import Decimal, InvalidOperation
 from functools import wraps
-from flask import Blueprint, current_app, flash, redirect, render_template, request, send_from_directory, url_for
+from io import BytesIO
+from secrets import token_hex
+from flask import Blueprint, current_app, flash, redirect, render_template, request, send_file, send_from_directory, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
+from openpyxl import Workbook
 from sqlalchemy import func, or_
 from . import db
 from .cloudinary_service import delete_product_image, upload_product_image, validate_product_image
-from .models import Client, Establishment, Order, Product, User
+from .models import Client, Establishment, Order, OrderItem, Product, User
 
 auth_bp = Blueprint("auth", __name__)
 main_bp = Blueprint("main", __name__)
@@ -38,7 +42,7 @@ def service_worker():
 def login():
     if current_user.is_authenticated: return redirect(url_for("main.index"))
     if request.method == "POST":
-        user = User.query.filter(func.lower(User.email) == request.form.get("email", "").strip().lower()).first()
+        user = User.query.filter(func.lower(User.username) == request.form.get("username", "").strip().lower()).first()
         if user and user.active and user.check_password(request.form.get("password", "")):
             login_user(user, remember=bool(request.form.get("remember")))
             return redirect(url_for("main.index"))
@@ -316,21 +320,25 @@ def establishment_status(establishment_id):
 
 def _user_form_values(user=None):
     name = request.form.get("name", "").strip()
+    username = request.form.get("username", "").strip().lower()
     email = request.form.get("email", "").strip().lower()
     role = request.form.get("role", "cliente")
     password = request.form.get("password", "")
     client_id_raw = request.form.get("client_id", "").strip()
-    if not name or not _is_email(email): return None, "Informe nome e e-mail válidos."
+    if not name or len(username) < 3 or not username.replace("_", "").replace("-", "").isalnum() or not _is_email(email): return None, "Informe nome, usuário e e-mail válidos."
     if role not in ("admin", "gestor", "vendedor", "cliente"): return None, "Perfil inválido."
     if not user and len(password) < 8: return None, "A senha provisória deve ter pelo menos 8 caracteres."
     if password and len(password) < 8: return None, "A nova senha deve ter pelo menos 8 caracteres."
     duplicate = User.query.filter(func.lower(User.email) == email)
     if user: duplicate = duplicate.filter(User.id != user.id)
     if duplicate.first(): return None, "Já existe um usuário com esse e-mail."
+    duplicate_username = User.query.filter(func.lower(User.username) == username)
+    if user: duplicate_username = duplicate_username.filter(User.id != user.id)
+    if duplicate_username.first(): return None, "Esse nome de usuário já está em uso."
     client_id = int(client_id_raw) if client_id_raw.isdigit() else None
     if role == "cliente" and not client_id: return None, "Vincule o acesso a um cliente."
     if client_id and not db.session.get(Client, client_id): return None, "Cliente selecionado não existe."
-    return {"name": name, "email": email, "role": role, "client_id": client_id if role == "cliente" else None, "active": bool(request.form.get("active")), "password": password}, None
+    return {"name": name, "username": username, "email": email, "role": role, "client_id": client_id if role == "cliente" else None, "active": bool(request.form.get("active")), "password": password}, None
 
 @admin_bp.route("/usuarios")
 @roles_required("admin", "gestor")
@@ -379,10 +387,164 @@ def user_status(user_id):
         user.active = not user.active; db.session.commit(); flash("Situação do usuário atualizada.", "success")
     return redirect(url_for("admin.users"))
 
+def _order_query(client_id=None):
+    query = Order.query
+    if client_id: query = query.filter(Order.client_id == client_id)
+    date_from = request.args.get("date_from", "").strip()
+    date_to = request.args.get("date_to", "").strip()
+    establishment_id = request.args.get("establishment_id", type=int)
+    selected_client = request.args.get("client_id", type=int)
+    status = request.args.get("status", "").strip()
+    if selected_client and not client_id: query = query.filter(Order.client_id == selected_client)
+    if establishment_id: query = query.filter(Order.establishment_id == establishment_id)
+    if status: query = query.filter(Order.status == status)
+    try:
+        if date_from: query = query.filter(Order.created_at >= datetime.combine(datetime.strptime(date_from, "%Y-%m-%d").date(), time.min, tzinfo=timezone.utc))
+        if date_to: query = query.filter(Order.created_at <= datetime.combine(datetime.strptime(date_to, "%Y-%m-%d").date(), time.max, tzinfo=timezone.utc))
+    except ValueError: flash("Período inválido.", "danger")
+    return query
+
+@admin_bp.route("/pedidos")
+@roles_required("admin", "gestor", "vendedor")
+def orders():
+    items = _order_query().order_by(Order.created_at.desc()).all()
+    return render_template("admin/orders.html", orders=items)
+
+@admin_bp.route("/pedidos/<int:order_id>")
+@roles_required("admin", "gestor", "vendedor")
+def order_detail(order_id):
+    return render_template("admin/order_detail.html", order=db.get_or_404(Order, order_id))
+
+@admin_bp.post("/pedidos/<int:order_id>/status")
+@roles_required("admin", "gestor", "vendedor")
+def order_status(order_id):
+    order = db.get_or_404(Order, order_id)
+    action = request.form.get("action")
+    if order.status != "aguardando_aprovacao":
+        flash("Esse pedido já foi analisado.", "danger")
+    elif action == "aprovar":
+        unavailable = [item for item in order.items if item.product.stock < item.quantity]
+        if unavailable:
+            flash("Estoque insuficiente para: " + ", ".join(item.product.name for item in unavailable), "danger")
+        else:
+            for item in order.items: item.product.stock -= item.quantity
+            order.status = "aprovado"; db.session.commit(); flash("Pedido aprovado e estoque atualizado.", "success")
+    elif action in ("recusar", "cancelar"):
+        order.status = "recusado" if action == "recusar" else "cancelado"; db.session.commit(); flash("Pedido atualizado.", "success")
+    else: flash("Ação inválida.", "danger")
+    return redirect(url_for("admin.order_detail", order_id=order.id))
+
+def _report_context(client_id=None):
+    orders = _order_query(client_id).order_by(Order.created_at.desc()).all()
+    valid = [order for order in orders if order.status != "cancelado"]
+    total = sum((order.total for order in valid), Decimal("0"))
+    ranking = {}
+    for order in valid:
+        for item in order.items:
+            ranking[item.product.name] = ranking.get(item.product.name, 0) + item.quantity
+    ranking = sorted(ranking.items(), key=lambda row: row[1], reverse=True)[:10]
+    return orders, total, ranking
+
+def _orders_excel(orders, filename):
+    workbook = Workbook(); sheet = workbook.active; sheet.title = "Pedidos"
+    sheet.append(["Pedido", "Data", "Cliente", "Estabelecimento", "Status", "Total"])
+    for order in orders: sheet.append([order.code, order.created_at.strftime("%d/%m/%Y"), order.client.trade_name, order.establishment.name, order.status.replace("_", " ").title(), float(order.total)])
+    details = workbook.create_sheet("Itens")
+    details.append(["Pedido", "Produto", "SKU", "Quantidade", "Preço unitário", "Subtotal"])
+    for order in orders:
+        for item in order.items: details.append([order.code, item.product.name, item.product.sku, item.quantity, float(item.unit_price), float(item.unit_price * item.quantity)])
+    output = BytesIO(); workbook.save(output); output.seek(0)
+    return send_file(output, as_attachment=True, download_name=filename, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+@admin_bp.route("/relatorios")
+@roles_required("admin", "gestor", "vendedor")
+def reports():
+    orders, total, ranking = _report_context()
+    return render_template("admin/reports.html", orders=orders, total=total, ranking=ranking, clients=Client.query.order_by(Client.trade_name).all(), establishments=Establishment.query.order_by(Establishment.name).all())
+
+@admin_bp.route("/relatorios/excel")
+@roles_required("admin", "gestor", "vendedor")
+def reports_excel():
+    return _orders_excel(_order_query().order_by(Order.created_at.desc()).all(), "relatorio_sacolicia.xlsx")
+
 @cliente_bp.route("/")
 @roles_required("cliente")
 def dashboard():
     establishments = Establishment.query.filter_by(client_id=current_user.client_id, active=True).all()
     orders = Order.query.filter_by(client_id=current_user.client_id).order_by(Order.created_at.desc()).limit(6).all()
+    order_count = Order.query.filter_by(client_id=current_user.client_id).count()
     total = db.session.query(func.coalesce(func.sum(Order.total), 0)).filter(Order.client_id==current_user.client_id, Order.status!="cancelado").scalar()
-    return render_template("cliente/dashboard.html", establishments=establishments, orders=orders, total=total, products=Product.query.filter_by(available=True).all())
+    cart_count = sum(session.get("cart", {}).values())
+    return render_template("cliente/dashboard.html", establishments=establishments, orders=orders, order_count=order_count, total=total, cart_count=cart_count, products=Product.query.filter_by(available=True).all())
+
+@cliente_bp.post("/carrinho/adicionar/<int:product_id>")
+@roles_required("cliente")
+def cart_add(product_id):
+    product = db.get_or_404(Product, product_id)
+    if not product.available or product.stock < 1:
+        flash("Produto indisponível.", "danger"); return redirect(url_for("cliente.dashboard"))
+    try: quantity = max(1, int(request.form.get("quantity", 1)))
+    except ValueError: quantity = 1
+    cart = session.get("cart", {}); key = str(product.id)
+    cart[key] = min(product.stock, cart.get(key, 0) + quantity); session["cart"] = cart
+    flash("Produto adicionado ao carrinho.", "success")
+    return redirect(url_for("cliente.dashboard", _anchor="catalogo"))
+
+def _cart_items():
+    cart = session.get("cart", {}); products = Product.query.filter(Product.id.in_([int(key) for key in cart] or [0])).all()
+    items = [{"product": product, "quantity": cart.get(str(product.id), 0), "subtotal": product.price * cart.get(str(product.id), 0)} for product in products]
+    return items, sum((item["subtotal"] for item in items), Decimal("0"))
+
+@cliente_bp.route("/carrinho")
+@roles_required("cliente")
+def cart():
+    items, total = _cart_items()
+    establishments = Establishment.query.filter_by(client_id=current_user.client_id, active=True).order_by(Establishment.name).all()
+    return render_template("cliente/cart.html", items=items, total=total, establishments=establishments)
+
+@cliente_bp.post("/carrinho/atualizar")
+@roles_required("cliente")
+def cart_update():
+    cart = session.get("cart", {})
+    for key in list(cart):
+        product = db.session.get(Product, int(key))
+        try: quantity = int(request.form.get(f"quantity_{key}", 0))
+        except ValueError: quantity = 0
+        if not product or quantity <= 0: cart.pop(key, None)
+        else: cart[key] = min(quantity, product.stock)
+    session["cart"] = cart; flash("Carrinho atualizado.", "success")
+    return redirect(url_for("cliente.cart"))
+
+@cliente_bp.post("/pedido/enviar")
+@roles_required("cliente")
+def order_submit():
+    items, total = _cart_items()
+    establishment = db.session.get(Establishment, request.form.get("establishment_id", type=int))
+    if not items: flash("Seu carrinho está vazio.", "danger"); return redirect(url_for("cliente.cart"))
+    if not establishment or establishment.client_id != current_user.client_id or not establishment.active:
+        flash("Selecione um estabelecimento válido.", "danger"); return redirect(url_for("cliente.cart"))
+    if any(item["quantity"] > item["product"].stock for item in items):
+        flash("Um produto não possui mais a quantidade solicitada.", "danger"); return redirect(url_for("cliente.cart"))
+    order = Order(code=f"PED-{datetime.now().strftime('%y%m%d')}-{token_hex(2).upper()}", client_id=current_user.client_id, establishment_id=establishment.id, created_by_id=current_user.id, total=total, notes=request.form.get("notes", "").strip() or None)
+    db.session.add(order); db.session.flush()
+    for item in items: db.session.add(OrderItem(order_id=order.id, product_id=item["product"].id, quantity=item["quantity"], unit_price=item["product"].price))
+    db.session.commit(); session.pop("cart", None); flash(f"Pedido {order.code} enviado para aprovação.", "success")
+    return redirect(url_for("cliente.order_detail", order_id=order.id))
+
+@cliente_bp.route("/pedidos/<int:order_id>")
+@roles_required("cliente")
+def order_detail(order_id):
+    order = Order.query.filter_by(id=order_id, client_id=current_user.client_id).first_or_404()
+    return render_template("cliente/order_detail.html", order=order)
+
+@cliente_bp.route("/relatorios")
+@roles_required("cliente")
+def reports():
+    orders, total, ranking = _report_context(current_user.client_id)
+    establishments = Establishment.query.filter_by(client_id=current_user.client_id).order_by(Establishment.name).all()
+    return render_template("cliente/reports.html", orders=orders, total=total, ranking=ranking, establishments=establishments)
+
+@cliente_bp.route("/relatorios/excel")
+@roles_required("cliente")
+def reports_excel():
+    return _orders_excel(_order_query(current_user.client_id).order_by(Order.created_at.desc()).all(), "minhas_compras_sacolicia.xlsx")

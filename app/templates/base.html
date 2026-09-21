@@ -25,15 +25,16 @@
     {% if current_user.role == 'cliente' %}
       <a class="active" href="{{ url_for('cliente.dashboard') }}">⌂ Início</a>
       <a href="{{ url_for('cliente.dashboard') }}#catalogo">▣ Catálogo</a>
+      <a href="{{ url_for('cliente.cart') }}">▤ Carrinho</a>
       <a href="{{ url_for('cliente.dashboard') }}#pedidos">◷ Meus pedidos</a>
-      <a href="#relatorios">↧ Relatórios</a>
+      <a href="{{ url_for('cliente.reports') }}">↧ Relatórios</a>
     {% else %}
       <a class="active" href="{{ url_for('admin.dashboard') }}">⌂ Visão geral</a>
-      <a href="{{ url_for('admin.dashboard') }}#pedidos">▤ Pedidos</a>
+      <a href="{{ url_for('admin.orders') }}">▤ Pedidos</a>
       <a href="{{ url_for('admin.products') }}">◈ Produtos</a>
       <a href="{{ url_for('admin.clients') }}">♙ Clientes</a>
       <a href="{{ url_for('admin.establishments') }}">▥ Estabelecimentos</a>
-      <a href="#relatorios">↧ Relatórios</a>
+      <a href="{{ url_for('admin.reports') }}">↧ Relatórios</a>
       {% if current_user.role in ('admin', 'gestor') %}<a href="{{ url_for('admin.users') }}">⚙ Usuários</a>{% endif %}
     {% endif %}
   </nav>

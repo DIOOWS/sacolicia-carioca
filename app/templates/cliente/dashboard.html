@@ -1,30 +1,6 @@
-{% extends 'base.html' %}
-{% block title %}Minha área | Sacolícia{% endblock %}
-{% block content %}
-<section class="page">
-  <div class="client-hero">
-    <div><span class="eyebrow">OLÁ, {{ current_user.name.split()[0]|upper }}</span><h1>Seu estoque começa aqui.</h1><p>Escolha o estabelecimento, monte seu pedido e envie para aprovação.</p></div>
-    <label class="establishment">ENTREGA PARA<select>{% for item in establishments %}<option>{{ item.name }}</option>{% endfor %}</select></label>
-  </div>
-  <div class="client-stats">
-    <article><span>Total comprado</span><strong>R$ {{ '%.2f'|format(total)|replace('.', ',') }}</strong><small>Histórico completo</small></article>
-    <article><span>Pedidos realizados</span><strong>{{ orders|length }}</strong><small>Últimos registros</small></article>
-    <article><span>Estabelecimentos</span><strong>{{ establishments|length }}</strong><small>Vinculados à sua empresa</small></article>
-  </div>
-  <section id="catalogo">
-    <div class="section-title"><div><h2>Produtos disponíveis</h2><p>Catálogo atualizado pela Sacolícia Carioca</p></div><input class="search" placeholder="Buscar produto..."></div>
-    <div class="products">
-      {% for product in products %}
-      <article class="product" data-search="{{ product.name|lower }} {{ product.category|lower }}">
-        <div class="product-art"><span>{{ product.category }}</span><img src="{{ product.image_url or url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="{{ product.name }}" loading="lazy"></div>
-        <div class="product-body"><small>{{ product.sku }}</small><h3>{{ product.name }}</h3><p>{{ product.unit }}</p><footer><strong>R$ {{ '%.2f'|format(product.price)|replace('.', ',') }}</strong><button>+ Adicionar</button></footer></div>
-      </article>
-      {% else %}<div class="panel empty"><b>Catálogo em atualização</b><span>Em breve teremos produtos disponíveis.</span></div>{% endfor %}
-    </div>
-  </section>
-  <article class="panel history" id="pedidos">
-    <div class="panel-title"><div><h2>Meus pedidos</h2><p>Histórico por estabelecimento</p></div><button>Baixar relatório</button></div>
-    {% if orders %}<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Estabelecimento</th><th>Data</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in orders %}<tr><td>{{ order.code }}</td><td>{{ order.establishment.name }}</td><td>{{ order.created_at.strftime('%d/%m/%Y') }}</td><td>R$ {{ '%.2f'|format(order.total)|replace('.', ',') }}</td><td>{{ order.status|replace('_',' ')|title }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><b>Você ainda não fez nenhum pedido</b><span>Adicione produtos ao carrinho para começar.</span></div>{% endif %}
-  </article>
-</section>
+{% extends 'base.html' %}{% block title %}Minha área | Sacolícia{% endblock %}{% block content %}
+<section class="page"><div class="client-hero"><div><span class="eyebrow">OLÁ, {{ current_user.name.split()[0]|upper }}</span><h1>Seu estoque começa aqui.</h1><p>Monte seu pedido e envie para aprovação.</p></div><a class="primary button-link" href="{{ url_for('cliente.cart') }}">Carrinho ({{ cart_count }})</a></div>
+<div class="client-stats"><article><span>Total comprado</span><strong>R$ {{ '%.2f'|format(total)|replace('.', ',') }}</strong><small>Histórico completo</small></article><article><span>Pedidos realizados</span><strong>{{ order_count }}</strong><small>Todos os registros</small></article><article><span>Estabelecimentos</span><strong>{{ establishments|length }}</strong><small>Vinculados à empresa</small></article></div>
+<section id="catalogo"><div class="section-title"><div><h2>Produtos disponíveis</h2><p>Catálogo atualizado pela Sacolícia Carioca</p></div><input class="search" placeholder="Buscar produto..."></div><div class="products">{% for product in products %}<article class="product" data-search="{{ product.name|lower }} {{ product.category|lower }}"><div class="product-art"><span>{{ product.category }}</span><img src="{{ product.image_url or url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="{{ product.name }}" loading="lazy"></div><div class="product-body"><small>{{ product.sku }}</small><h3>{{ product.name }}</h3><p>{{ product.unit }} · Estoque {{ product.stock }}</p><footer><strong>R$ {{ '%.2f'|format(product.price)|replace('.', ',') }}</strong><form method="post" action="{{ url_for('cliente.cart_add', product_id=product.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="quantity" value="1"><button {% if product.stock < 1 %}disabled{% endif %}>+ Adicionar</button></form></footer></div></article>{% else %}<div class="panel empty"><b>Catálogo em atualização</b></div>{% endfor %}</div></section>
+<article class="panel history" id="pedidos"><div class="panel-title"><div><h2>Meus pedidos</h2><p>Histórico recente</p></div><a class="secondary button-link" href="{{ url_for('cliente.reports') }}">Ver relatório</a></div>{% if orders %}<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Estabelecimento</th><th>Data</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in orders %}<tr><td><a href="{{ url_for('cliente.order_detail', order_id=order.id) }}">{{ order.code }}</a></td><td>{{ order.establishment.name }}</td><td>{{ order.created_at.strftime('%d/%m/%Y') }}</td><td>R$ {{ '%.2f'|format(order.total)|replace('.', ',') }}</td><td>{{ order.status|replace('_',' ')|title }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><b>Você ainda não fez nenhum pedido</b><span>Adicione produtos ao carrinho para começar.</span></div>{% endif %}</article></section>
 {% endblock %}

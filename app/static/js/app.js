@@ -55,6 +55,16 @@ document.querySelectorAll('form').forEach(form => {
 
 window.addEventListener('pageshow', () => body.classList.remove('page-loading'));
 
+document.querySelectorAll('.password-toggle').forEach(button => {
+  button.addEventListener('click', () => {
+    const input = button.closest('.password-field')?.querySelector('input');
+    if (!input) return;
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    button.textContent = showing ? 'Ver' : 'Ocultar';
+  });
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js'));
 }
