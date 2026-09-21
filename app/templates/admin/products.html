@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Produtos | Sacolícia{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="page-head">
+    <div><span class="eyebrow">CATÁLOGO</span><h1>Produtos</h1><p>Cadastre preços, estoque, disponibilidade e fotos.</p></div>
+    <a class="primary button-link" href="{{ url_for('admin.product_new') }}">+ Novo produto</a>
+  </div>
+  <form class="toolbar" method="get">
+    <input class="search" name="q" value="{{ query }}" placeholder="Buscar nome, SKU ou categoria">
+    <button class="secondary" type="submit">Buscar</button>
+    {% if query %}<a href="{{ url_for('admin.products') }}">Limpar</a>{% endif %}
+  </form>
+  <div class="admin-products">
+    {% for product in products %}
+    <article class="admin-product">
+      <div class="admin-product-image">
+        <img src="{{ product.image_url or url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="{{ product.name }}">
+      </div>
+      <div class="admin-product-info">
+        <div class="product-meta"><span>{{ product.category }}</span><span>{{ product.sku }}</span></div>
+        <h2>{{ product.name }}</h2><p>{{ product.unit }} · Estoque: {{ product.stock }}</p>
+        <strong>R$ {{ '%.2f'|format(product.price)|replace('.', ',') }}</strong>
+        <span class="badge {{ 'available' if product.available else 'inactive' }}">{{ 'Disponível' if product.available else 'Indisponível' }}</span>
+      </div>
+      <div class="product-actions">
+        <a class="secondary button-link" href="{{ url_for('admin.product_edit', product_id=product.id) }}">Editar</a>
+        <form method="post" action="{{ url_for('admin.product_availability', product_id=product.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="ghost" type="submit">{{ 'Desativar' if product.available else 'Ativar' }}</button>
+        </form>
+      </div>
+    </article>
+    {% else %}<div class="panel empty"><b>Nenhum produto encontrado</b><span>Cadastre o primeiro produto do catálogo.</span></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

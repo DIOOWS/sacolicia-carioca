@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="sdkName" value="Python 3.10 (Sacolicia_Carioca_Flask_PWA_v1_2_MOBILE)" />
+  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (Sacolicia_Carioca_Flask_PWA_v1_2_MOBILE)" project-jdk-type="Python SDK" />
 </project>

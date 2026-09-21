@@ -1,3 +1,56 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#b91f2d"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Sacolícia"><title>{% block title %}Sacolícia Carioca{% endblock %}</title><link rel="manifest" href="{{ url_for('static',filename='manifest.json') }}"><link rel="apple-touch-icon" href="{{ url_for('static',filename='img/apple-touch-icon.png') }}"><link rel="stylesheet" href="{{ url_for('static',filename='css/app.css') }}"></head><body>
-{% if current_user.is_authenticated %}<aside class="sidebar"><a class="brand" href="{{ url_for('main.index') }}"><img src="{{ url_for('static',filename='img/logo-sacolicia.jpeg') }}" alt="Sacolícia Carioca"><span>Sacolícia<small>Carioca</small></span></a><nav>{% if current_user.role == 'cliente' %}<a class="active" href="{{ url_for('cliente.dashboard') }}">⌂ Início</a><a href="#catalogo">▣ Catálogo</a><a href="#pedidos">◷ Meus pedidos</a><a href="#relatorios">↧ Relatórios</a>{% else %}<a class="active" href="{{ url_for('admin.dashboard') }}">⌂ Visão geral</a><a href="#pedidos">▤ Pedidos</a><a href="#produtos">◈ Produtos</a><a href="#clientes">♙ Clientes</a><a href="#estabelecimentos">▥ Estabelecimentos</a><a href="#relatorios">↧ Relatórios</a><a href="#usuarios">⚙ Usuários</a>{% endif %}</nav><div class="side-user"><b>{{ current_user.name }}</b><span>{{ current_user.role|title }}</span><form method="post" action="{{ url_for('auth.logout') }}"><button>Sair</button></form></div></aside>{% endif %}
-<main class="{% if current_user.is_authenticated %}workspace{% endif %}">{% if current_user.is_authenticated %}<header class="topbar"><button class="menu-button" aria-label="Abrir menu">☰</button><div><span class="mobile-name">Sacolícia Carioca</span></div><div class="top-user"><span>{{ current_user.name }}</span><i>{{ current_user.name[:2]|upper }}</i></div></header>{% endif %}{% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="alerts">{% for category,message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}{% block content %}{% endblock %}</main><script src="{{ url_for('static',filename='js/app.js') }}"></script>{% block scripts %}{% endblock %}</body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#b91f2d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sacolícia">
+  <title>{% block title %}Sacolícia Carioca{% endblock %}</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+<aside class="sidebar">
+  <a class="brand" href="{{ url_for('main.index') }}">
+    <img src="{{ url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="Sacolícia Carioca">
+    <span>Sacolícia<small>Carioca</small></span>
+  </a>
+  <nav>
+    {% if current_user.role == 'cliente' %}
+      <a class="active" href="{{ url_for('cliente.dashboard') }}">⌂ Início</a>
+      <a href="{{ url_for('cliente.dashboard') }}#catalogo">▣ Catálogo</a>
+      <a href="{{ url_for('cliente.dashboard') }}#pedidos">◷ Meus pedidos</a>
+      <a href="#relatorios">↧ Relatórios</a>
+    {% else %}
+      <a class="active" href="{{ url_for('admin.dashboard') }}">⌂ Visão geral</a>
+      <a href="{{ url_for('admin.dashboard') }}#pedidos">▤ Pedidos</a>
+      <a href="{{ url_for('admin.products') }}">◈ Produtos</a>
+      <a href="#clientes">♙ Clientes</a>
+      <a href="#estabelecimentos">▥ Estabelecimentos</a>
+      <a href="#relatorios">↧ Relatórios</a>
+      <a href="#usuarios">⚙ Usuários</a>
+    {% endif %}
+  </nav>
+  <div class="side-user">
+    <b>{{ current_user.name }}</b><span>{{ current_user.role|title }}</span>
+    <form method="post" action="{{ url_for('auth.logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button>Sair</button>
+    </form>
+  </div>
+</aside>
+{% endif %}
+<main class="{% if current_user.is_authenticated %}workspace{% endif %}">
+  {% if current_user.is_authenticated %}<header class="topbar"><button class="menu-button" aria-label="Abrir menu">☰</button><div><span class="mobile-name">Sacolícia Carioca</span></div><div class="top-user"><span>{{ current_user.name }}</span><i>{{ current_user.name[:2]|upper }}</i></div></header>{% endif %}
+  {% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="alerts">{% for category,message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

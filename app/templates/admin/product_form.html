@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar' if product else 'Novo' }} produto | Sacolícia{% endblock %}
+{% block content %}
+<section class="page form-page">
+  <div class="page-head"><div><span class="eyebrow">CATÁLOGO</span><h1>{{ 'Editar produto' if product else 'Novo produto' }}</h1><p>Os produtos disponíveis serão exibidos para todos os clientes.</p></div></div>
+  <form class="panel product-form" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="image-field">
+      <div class="image-preview"><img id="image-preview" src="{{ product.image_url if product and product.image_url else url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="Prévia do produto"></div>
+      <div><label for="image">Foto do produto</label><input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG ou WEBP, até 5 MB. A imagem será armazenada no Cloudinary.</small></div>
+    </div>
+    <div class="form-grid">
+      <label class="span-2">Nome do produto<input name="name" maxlength="140" required value="{{ request.form.get('name', product.name if product else '') }}"></label>
+      <label>SKU<input name="sku" maxlength="40" required value="{{ request.form.get('sku', product.sku if product else '') }}"></label>
+      <label>Categoria<input name="category" maxlength="80" required value="{{ request.form.get('category', product.category if product else '') }}"></label>
+      <label>Unidade/embalagem<input name="unit" maxlength="60" required placeholder="Ex.: Caixa com 20" value="{{ request.form.get('unit', product.unit if product else '') }}"></label>
+      <label>Preço (R$)<input name="price" inputmode="decimal" required placeholder="0,00" value="{{ request.form.get('price', ('%.2f'|format(product.price)|replace('.', ',')) if product else '') }}"></label>
+      <label>Estoque<input type="number" name="stock" min="0" required value="{{ request.form.get('stock', product.stock if product else 0) }}"></label>
+      <label class="switch-row"><input type="checkbox" name="available" {% if request.method == 'POST' and request.form.get('available') or request.method == 'GET' and (not product or product.available) %}checked{% endif %}> Disponível para os clientes</label>
+    </div>
+    <div class="form-actions"><a class="secondary button-link" href="{{ url_for('admin.products') }}">Cancelar</a><button class="primary" type="submit">Salvar produto</button></div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}<script>document.querySelector('#image')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)document.querySelector('#image-preview').src=URL.createObjectURL(f)});</script>{% endblock %}

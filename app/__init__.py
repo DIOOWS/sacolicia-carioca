@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -10,6 +11,7 @@ login_manager = LoginManager()
 login_manager.login_view = "auth.login"
 login_manager.login_message = "Entre com seu usuário e senha para continuar."
 migrate = Migrate()
+csrf = CSRFProtect()
 
 def create_app(test_config=None):
     load_dotenv()
@@ -25,11 +27,16 @@ def create_app(test_config=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+        CLOUDINARY_CLOUD_NAME=os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+        CLOUDINARY_API_KEY=os.getenv("CLOUDINARY_API_KEY", ""),
+        CLOUDINARY_API_SECRET=os.getenv("CLOUDINARY_API_SECRET", ""),
     )
     if test_config:
         app.config.update(test_config)
     os.makedirs(app.instance_path, exist_ok=True)
     db.init_app(app)
+    csrf.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
     from .models import User

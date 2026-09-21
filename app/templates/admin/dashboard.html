@@ -1,1 +1,20 @@
-{% extends 'base.html' %}{% block title %}Painel administrativo | Sacolícia{% endblock %}{% block content %}<section class="page"><div class="page-head"><div><span class="eyebrow">PAINEL ADMINISTRATIVO</span><h1>Visão geral</h1><p>Acompanhe a operação comercial da Sacolícia Carioca.</p></div><button class="primary compact">+ Novo pedido</button></div><div class="kpis"><article class="accent"><span>AGUARDANDO APROVAÇÃO</span><strong>{{ stats.pending }}</strong><small>Pedidos para analisar</small></article><article><span>CLIENTES ATIVOS</span><strong>{{ stats.clients }}</strong><small>Empresas cadastradas</small></article><article><span>ESTABELECIMENTOS</span><strong>{{ stats.establishments }}</strong><small>Pontos de entrega</small></article><article><span>PRODUTOS DISPONÍVEIS</span><strong>{{ stats.products }}</strong><small>Itens no catálogo</small></article></div><div class="panel-grid"><article class="panel wide" id="pedidos"><div class="panel-title"><div><h2>Pedidos recentes</h2><p>Últimas solicitações recebidas</p></div><button>Ver todos</button></div>{% if orders %}<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Estabelecimento</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in orders %}<tr><td><b>{{ order.code }}</b></td><td>{{ order.client.trade_name }}</td><td>{{ order.establishment.name }}</td><td>R$ {{ '%.2f'|format(order.total)|replace('.',',') }}</td><td><span class="badge pending">Aguardando aprovação</span></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><b>Nenhum pedido recebido</b><span>Os novos pedidos aparecerão aqui para aprovação.</span></div>{% endif %}</article><article class="panel quick"><h2>Ações rápidas</h2><a href="#clientes">Cadastrar cliente <b>→</b></a><a href="#produtos">Cadastrar produto <b>→</b></a><a href="#estabelecimentos">Novo estabelecimento <b>→</b></a><a href="#usuarios">Criar acesso do cliente <b>→</b></a></article></div></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Painel administrativo | Sacolícia{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="page-head"><div><span class="eyebrow">PAINEL ADMINISTRATIVO</span><h1>Visão geral</h1><p>Acompanhe a operação comercial da Sacolícia Carioca.</p></div><button class="primary compact">+ Novo pedido</button></div>
+  <div class="kpis">
+    <article class="accent"><span>AGUARDANDO APROVAÇÃO</span><strong>{{ stats.pending }}</strong><small>Pedidos para analisar</small></article>
+    <article><span>CLIENTES ATIVOS</span><strong>{{ stats.clients }}</strong><small>Empresas cadastradas</small></article>
+    <article><span>ESTABELECIMENTOS</span><strong>{{ stats.establishments }}</strong><small>Pontos de entrega</small></article>
+    <article><span>PRODUTOS DISPONÍVEIS</span><strong>{{ stats.products }}</strong><small>Itens no catálogo</small></article>
+  </div>
+  <div class="panel-grid">
+    <article class="panel wide" id="pedidos">
+      <div class="panel-title"><div><h2>Pedidos recentes</h2><p>Últimas solicitações recebidas</p></div><button>Ver todos</button></div>
+      {% if orders %}<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Estabelecimento</th><th>Total</th><th>Status</th></tr></thead><tbody>{% for order in orders %}<tr><td><b>{{ order.code }}</b></td><td>{{ order.client.trade_name }}</td><td>{{ order.establishment.name }}</td><td>R$ {{ '%.2f'|format(order.total)|replace('.', ',') }}</td><td><span class="badge pending">Aguardando aprovação</span></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><b>Nenhum pedido recebido</b><span>Os novos pedidos aparecerão aqui para aprovação.</span></div>{% endif %}
+    </article>
+    <article class="panel quick"><h2>Ações rápidas</h2><a href="#clientes">Cadastrar cliente <b>→</b></a><a href="{{ url_for('admin.product_new') }}">Cadastrar produto <b>→</b></a><a href="#estabelecimentos">Novo estabelecimento <b>→</b></a><a href="#usuarios">Criar acesso do cliente <b>→</b></a></article>
+  </div>
+</section>
+{% endblock %}

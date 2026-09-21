@@ -1,1 +1,15 @@
-{% extends 'base.html' %}{% block title %}Entrar | Sacolícia Carioca{% endblock %}{% block content %}<section class="login-page"><div class="login-art"><img src="{{ url_for('static',filename='img/logo-sacolicia.jpeg') }}" alt="Logo Sacolícia Carioca"><div><h1>Sabor que vende.<br>Gestão que cresce.</h1><p>Pedidos, clientes e resultados em um só lugar.</p></div></div><div class="login-panel"><form method="post" class="login-card"><span class="eyebrow">ACESSO SEGURO</span><h2>Bem-vindo de volta</h2><p>Entre com os dados fornecidos pela Sacolícia Carioca.</p><label>E-mail<input type="email" name="email" placeholder="seu@email.com" required autofocus></label><label>Senha<input type="password" name="password" placeholder="••••••••" required></label><label class="check"><input type="checkbox" name="remember"> Manter conectado</label><button class="primary">Entrar no sistema</button><small>Não possui acesso? Fale com o seu vendedor.</small></form></div></section>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Entrar | Sacolícia Carioca{% endblock %}
+{% block content %}
+<section class="login-page">
+  <div class="login-art"><img src="{{ url_for('static', filename='img/logo-sacolicia.jpeg') }}" alt="Logo Sacolícia Carioca"><div><h1>Sabor que vende.<br>Gestão que cresce.</h1><p>Pedidos, clientes e resultados em um só lugar.</p></div></div>
+  <div class="login-panel"><form method="post" class="login-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <span class="eyebrow">ACESSO SEGURO</span><h2>Bem-vindo de volta</h2><p>Entre com os dados fornecidos pela Sacolícia Carioca.</p>
+    <label>E-mail<input type="email" name="email" placeholder="seu@email.com" required autofocus></label>
+    <label>Senha<input type="password" name="password" placeholder="••••••••" required></label>
+    <label class="check"><input type="checkbox" name="remember"> Manter conectado</label>
+    <button class="primary">Entrar no sistema</button><small>Não possui acesso? Fale com o seu vendedor.</small>
+  </form></div>
+</section>
+{% endblock %}
