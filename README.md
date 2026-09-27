@@ -13,6 +13,14 @@ O administrador pode cadastrar e editar clientes, vincular vários
 estabelecimentos com endereço completo e criar os acessos dos clientes. Também
 é possível ativar e desativar cada cadastro sem apagar o histórico.
 
+Clientes, estabelecimentos e produtos sem pedidos vinculados também podem ser
+excluídos definitivamente por administradores e gestores. Quando existe
+histórico, a exclusão é bloqueada e o cadastro deve ser desativado para manter
+pedidos e relatórios íntegros.
+
+Nos formulários, somente os dados indispensáveis são obrigatórios. SKU,
+categoria e unidade recebem valores automáticos quando deixados em branco.
+
 PWA de pedidos B2B com áreas administrativas e de cliente separadas.
 
 ## Rodar localmente

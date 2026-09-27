@@ -29,6 +29,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button class="ghost" type="submit">{{ 'Desativar' if product.available else 'Ativar' }}</button>
         </form>
+        {% if current_user.role in ('admin', 'gestor') %}<form method="post" action="{{ url_for('admin.product_delete', product_id=product.id) }}" onsubmit="return confirm('Excluir este produto definitivamente?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger-button" type="submit">Excluir</button></form>{% endif %}
       </div>
     </article>
     {% else %}<div class="panel empty"><b>Nenhum produto encontrado</b><span>Cadastre o primeiro produto do catálogo.</span></div>{% endfor %}

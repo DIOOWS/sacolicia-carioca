@@ -60,25 +60,31 @@ def dashboard():
     stats = {"pending": Order.query.filter_by(status="aguardando_aprovacao").count(), "clients": Client.query.filter_by(active=True).count(), "establishments": Establishment.query.filter_by(active=True).count(), "products": Product.query.filter_by(available=True).count()}
     return render_template("admin/dashboard.html", stats=stats, orders=Order.query.order_by(Order.created_at.desc()).limit(6).all())
 
+def _generated_sku():
+    while True:
+        sku = f"SC-{token_hex(3).upper()}"
+        if not Product.query.filter_by(sku=sku).first():
+            return sku
+
 def _product_form_values(product=None):
     try:
         raw_price = request.form.get("price", "").strip()
         normalized_price = raw_price.replace(".", "").replace(",", ".") if "," in raw_price else raw_price
         price = Decimal(normalized_price)
-        stock = int(request.form.get("stock", "0"))
+        stock = int(request.form.get("stock", "0") or 0)
     except (InvalidOperation, ValueError):
         return None, "Informe preço e estoque válidos."
     values = {
         "name": request.form.get("name", "").strip(),
-        "sku": request.form.get("sku", "").strip().upper(),
-        "category": request.form.get("category", "").strip(),
-        "unit": request.form.get("unit", "").strip(),
+        "sku": request.form.get("sku", "").strip().upper() or (product.sku if product else _generated_sku()),
+        "category": request.form.get("category", "").strip() or "Sem categoria",
+        "unit": request.form.get("unit", "").strip() or "Unidade",
         "price": price,
         "stock": stock,
         "available": bool(request.form.get("available")),
     }
-    if not all((values["name"], values["sku"], values["category"], values["unit"])):
-        return None, "Preencha todos os campos obrigatórios."
+    if not values["name"]:
+        return None, "Informe o nome do produto."
     if price < 0 or stock < 0:
         return None, "Preço e estoque não podem ser negativos."
     duplicate = Product.query.filter(func.upper(Product.sku) == values["sku"])
@@ -174,20 +180,38 @@ def product_availability(product_id):
     flash("Disponibilidade do produto atualizada.", "success")
     return redirect(url_for("admin.products"))
 
+@admin_bp.post("/produtos/<int:product_id>/excluir")
+@roles_required("admin", "gestor")
+def product_delete(product_id):
+    product = db.get_or_404(Product, product_id)
+    if OrderItem.query.filter_by(product_id=product.id).first():
+        flash("Esse produto possui pedidos no histórico e não pode ser excluído. Desative-o para ocultá-lo do catálogo.", "danger")
+        return redirect(url_for("admin.products"))
+    public_id = product.image_public_id
+    db.session.delete(product)
+    db.session.commit()
+    if public_id:
+        try: delete_product_image(public_id)
+        except Exception: current_app.logger.exception("Falha ao excluir imagem do produto")
+    flash("Produto excluído definitivamente.", "success")
+    return redirect(url_for("admin.products"))
+
 def _is_email(value):
     return bool(value and "@" in value and "." in value.rsplit("@", 1)[-1])
 
 def _client_form_values(client=None):
+    trade_name = request.form.get("trade_name", "").strip()
+    document = request.form.get("document", "").strip()
     values = {
-        "corporate_name": request.form.get("corporate_name", "").strip(),
-        "trade_name": request.form.get("trade_name", "").strip(),
-        "document": request.form.get("document", "").strip(),
+        "corporate_name": request.form.get("corporate_name", "").strip() or trade_name,
+        "trade_name": trade_name,
+        "document": document or (client.document if client and client.document.startswith("SEM-DOC-") else f"SEM-DOC-{token_hex(5).upper()}"),
         "email": request.form.get("email", "").strip().lower() or None,
         "phone": request.form.get("phone", "").strip() or None,
         "active": bool(request.form.get("active")),
     }
-    if not all((values["corporate_name"], values["trade_name"], values["document"])):
-        return None, "Preencha razão social, nome fantasia e CPF/CNPJ."
+    if not values["trade_name"]:
+        return None, "Informe o nome fantasia do cliente."
     if values["email"] and not _is_email(values["email"]):
         return None, "Informe um e-mail válido."
     duplicate = Client.query.filter(func.lower(Client.document) == values["document"].lower())
@@ -246,6 +270,19 @@ def client_status(client_id):
     db.session.commit(); flash("Situação do cliente atualizada.", "success")
     return redirect(url_for("admin.clients"))
 
+@admin_bp.post("/clientes/<int:client_id>/excluir")
+@roles_required("admin", "gestor")
+def client_delete(client_id):
+    client = db.get_or_404(Client, client_id)
+    if Order.query.filter_by(client_id=client.id).first():
+        flash("Esse cliente possui pedidos no histórico e não pode ser excluído. Desative-o para preservar os relatórios.", "danger")
+        return redirect(url_for("admin.clients"))
+    User.query.filter_by(client_id=client.id).delete(synchronize_session=False)
+    db.session.delete(client)
+    db.session.commit()
+    flash("Cliente, acessos e estabelecimentos excluídos definitivamente.", "success")
+    return redirect(url_for("admin.clients"))
+
 def _establishment_form_values():
     try: client_id = int(request.form.get("client_id", ""))
     except ValueError: return None, "Selecione um cliente."
@@ -264,9 +301,8 @@ def _establishment_form_values():
         "zip_code": request.form.get("zip_code", "").strip(),
         "active": bool(request.form.get("active")),
     }
-    required = (client, values["name"], values["street"], values["number"], values["neighborhood"], values["city"], values["state"], values["zip_code"])
-    if not all(required): return None, "Preencha o cliente e todo o endereço obrigatório."
-    if len(values["state"]) != 2: return None, "Informe a UF com duas letras."
+    if not client or not values["name"]: return None, "Selecione o cliente e informe o nome da unidade."
+    if values["state"] and len(values["state"]) != 2: return None, "Informe a UF com duas letras."
     return values, None
 
 @admin_bp.route("/estabelecimentos")
@@ -316,6 +352,18 @@ def establishment_status(establishment_id):
     else:
         establishment.active = not establishment.active; db.session.commit()
         flash("Situação do estabelecimento atualizada.", "success")
+    return redirect(url_for("admin.establishments"))
+
+@admin_bp.post("/estabelecimentos/<int:establishment_id>/excluir")
+@roles_required("admin", "gestor")
+def establishment_delete(establishment_id):
+    establishment = db.get_or_404(Establishment, establishment_id)
+    if Order.query.filter_by(establishment_id=establishment.id).first():
+        flash("Esse estabelecimento possui pedidos no histórico e não pode ser excluído. Desative-o para preservar os relatórios.", "danger")
+        return redirect(url_for("admin.establishments"))
+    db.session.delete(establishment)
+    db.session.commit()
+    flash("Estabelecimento excluído definitivamente.", "success")
     return redirect(url_for("admin.establishments"))
 
 def _user_form_values(user=None):
